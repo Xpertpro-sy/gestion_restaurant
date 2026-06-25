@@ -47,6 +47,7 @@ dependencies:
   http: ^1.1.0
   image_picker: ^1.1.2
   sqflite_common_ffi: ^2.3.0+2
+  flutter_tts: ^4.2.0
 
 dev_dependencies:
   flutter_test:

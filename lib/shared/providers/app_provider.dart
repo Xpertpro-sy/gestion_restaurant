@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'dart:io';
 import '../../core/database/database_helper.dart';
 import '../../core/storage/product_image_storage.dart';
 import '../../core/network/local_server.dart';
+import '../../core/voice/voice_announcer.dart';
 import '../models/models.dart';
 import '../models/staff_notification.dart';
 
@@ -89,6 +91,7 @@ class AppProvider extends ChangeNotifier {
     try {
       await LocalServer.instance.start(port: port);
       await refreshRestaurantData();
+      unawaited(VoiceAnnouncer.instance.warmUp());
     } finally {
       _serverBusy = false;
       notifyListeners();
@@ -196,13 +199,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   void _onServerWebSocketEvent(String event, Map<String, dynamic> data) async {
-    await refreshRestaurantData();
-
-    if (event == 'waiter_call') {
-      HapticFeedback.heavyImpact();
-      // Le bandeau « Appels serveurs en attente » affiche déjà l'info.
-    } else if (event == 'new_order') {
-      final tableId = data['table_id'] as int;
+    if (event == 'new_order') {
+      final tableId = (data['table_id'] as num).toInt();
       final orderId = data['order_id'];
       final total = (data['total_amount'] as num?)?.toDouble();
       final label = _tableLabel(tableId);
@@ -214,8 +212,13 @@ class AppProvider extends ChangeNotifier {
         body: '$label · Commande #$orderId$amountText',
       );
       HapticFeedback.mediumImpact();
+      unawaited(VoiceAnnouncer.instance.announceNewOrder(label));
+    } else if (event == 'waiter_call') {
+      HapticFeedback.heavyImpact();
+      // Le bandeau « Appels serveurs en attente » affiche déjà l'info.
     }
 
+    await refreshRestaurantData();
     notifyListeners();
   }
 

@@ -10,6 +10,7 @@ import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../core/database/database_helper.dart';
+import '../../core/voice/voice_announcer.dart';
 import '../../shared/providers/app_provider.dart';
 import '../../shared/theme.dart';
 import '../../shared/formatters.dart';
@@ -603,6 +604,14 @@ class _ServerAdminViewState extends State<ServerAdminView> {
                       "Port de connexion",
                       "${provider.serverPort}",
                     ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        VoiceAnnouncer.instance.announceNewOrder('Table 2');
+                      },
+                      icon: const Icon(Icons.volume_up),
+                      label: const Text('Tester l\'annonce vocale'),
+                    ),
                   ],
                 ],
               ),
@@ -1174,15 +1183,18 @@ class CashierView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "Table ${order.tableId} - Commande #${order.id}",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        "Table ${order.tableId} - Commande #${order.id}",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       formatFcfa(order.totalAmount),
                       style: const TextStyle(
@@ -1195,28 +1207,35 @@ class CashierView extends StatelessWidget {
                 ),
                 const Divider(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildPaymentButton(
-                      context,
-                      provider,
-                      order,
-                      "Espèces",
-                      Icons.money,
+                    Expanded(
+                      child: _buildPaymentButton(
+                        context,
+                        provider,
+                        order,
+                        "Espèces",
+                        Icons.money,
+                      ),
                     ),
-                    _buildPaymentButton(
-                      context,
-                      provider,
-                      order,
-                      "Orange Money",
-                      Icons.phone_android,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildPaymentButton(
+                        context,
+                        provider,
+                        order,
+                        "Orange Money",
+                        Icons.phone_android,
+                      ),
                     ),
-                    _buildPaymentButton(
-                      context,
-                      provider,
-                      order,
-                      "Moov Money",
-                      Icons.phonelink_setup,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildPaymentButton(
+                        context,
+                        provider,
+                        order,
+                        "Moov Money",
+                        Icons.phonelink_setup,
+                      ),
                     ),
                   ],
                 ),
@@ -1243,10 +1262,12 @@ class CashierView extends StatelessWidget {
     String method,
     IconData icon,
   ) {
-    return ElevatedButton.icon(
+    return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: RestoTheme.success,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        minimumSize: const Size(0, 40),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       onPressed: () async {
         await provider.payOrder(order.id!, method);
@@ -1256,8 +1277,17 @@ class CashierView extends StatelessWidget {
           );
         }
       },
-      icon: Icon(icon, size: 18),
-      label: Text(method, style: const TextStyle(fontSize: 12)),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16),
+            const SizedBox(width: 4),
+            Text(method, style: const TextStyle(fontSize: 11)),
+          ],
+        ),
+      ),
     );
   }
 
