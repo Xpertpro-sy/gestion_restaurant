@@ -1121,13 +1121,14 @@ class TablesAdminView extends StatelessWidget {
                         data: qrPayload,
                         version: QrVersions.auto,
                         size: 200,
+                        errorCorrectionLevel: QrErrorCorrectLevel.L,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Les clients scannent ce QR avec l'appareil photo : le menu s'ouvre dans le navigateur (PWA), sans installer d'application.",
+                  "Les clients scannent ce QR : le menu s'ouvre directement dans le navigateur (Wi-Fi du restaurant requis).",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,

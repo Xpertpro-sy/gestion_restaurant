@@ -2,7 +2,7 @@
 /// Les clients scannent un QR code → ouverture navigateur → menu direct.
 class ClientWebContent {
   static String tableMenuUrl(String ip, int port, int tableId) =>
-      'http://$ip:$port/menu?t=$tableId';
+      'http://$ip:$port/t/$tableId';
 
   static const String manifestJson = '''
 {
@@ -26,11 +26,27 @@ class ClientWebContent {
 
   static const String serviceWorkerJs = '''
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open('resto-v1').then((c) => c.addAll(['/menu', '/client/manifest.webmanifest'])));
   self.skipWaiting();
 });
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys().then((keys) =>
+    Promise.all(keys.map((k) => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
 self.addEventListener('fetch', (e) => {
-  e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (url.pathname.startsWith('/api/')) return;
+  if (e.request.mode === 'navigate' || (e.request.headers.get('accept') || '').includes('text/html')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+  e.respondWith(
+    caches.open('resto-v1').then((cache) =>
+      cache.match(e.request).then((cached) => cached || fetch(e.request))
+    )
+  );
 });
 ''';
 
@@ -376,7 +392,10 @@ self.addEventListener('fetch', (e) => {
   </div>
   <script>
     const params = new URLSearchParams(location.search);
-    const tableId = parseInt(params.get('t') || params.get('tableId') || '0', 10);
+    const pathMatch = location.pathname.match(/^\/t\/(\d+)\/?$/);
+    const tableId = pathMatch
+      ? parseInt(pathMatch[1], 10)
+      : parseInt(params.get('t') || params.get('tableId') || '0', 10);
     let menu = [], selectedCat = 0, searchQuery = '', cart = {}, cartNotes = {};
     let activeOrders = [], ws = null, modalProduct = null;
     let pendingDeleteId = null, pendingDeleteReset = null;

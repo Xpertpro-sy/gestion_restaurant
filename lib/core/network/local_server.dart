@@ -265,6 +265,13 @@ class LocalServer {
     final path = request.uri.path;
 
     try {
+      if (request.method == 'GET') {
+        final tableRoute = RegExp(r'^/t/(\d+)$').firstMatch(path);
+        if (tableRoute != null) {
+          _sendHtml(response, ClientWebContent.indexHtml);
+          return;
+        }
+      }
       if (request.method == 'GET' && (path == '/menu' || path == '/')) {
         _sendHtml(response, ClientWebContent.indexHtml);
         return;
