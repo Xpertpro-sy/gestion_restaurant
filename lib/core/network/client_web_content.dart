@@ -58,13 +58,44 @@ self.addEventListener('fetch', (e) => {
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#FF8906">
+  <meta name="theme-color" content="#0F0E17">
   <link rel="manifest" href="/client/manifest.webmanifest">
   <title>Resto — Commander</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('resto-theme');
+      var theme = saved === 'light' || saved === 'dark'
+        ? saved
+        : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = theme === 'light' ? '#F5F6FA' : '#0F0E17';
+    })();
+  </script>
   <style>
-    :root {
+    :root, html[data-theme="dark"] {
       --bg: #0F0E17; --card: #1F1E26; --primary: #FF8906;
       --secondary: #F25F4C; --text: #FFFFFE; --muted: #A7A9BE;
+      --border: #2a2933; --input-border: rgba(255,255,255,0.06);
+      --chip-border: rgba(255,255,255,0.08);
+      --glass-bg: rgba(255,255,255,0.22); --glass-border: rgba(255,255,255,0.25);
+      --glass-title: #fff; --glass-price: rgba(255,255,255,0.9); --glass-arrow: rgba(255,255,255,0.9);
+      --card-fallback: #1c1b24; --placeholder-end: #1F1E26;
+      --dot-pending: #333; --line-pending: #333;
+      --modal-cancel-bg: #333; --modal-cancel-fg: #fff;
+      --overlay: rgba(0,0,0,0.7); --textarea-border: #333;
+    }
+    html[data-theme="light"] {
+      --bg: #F5F6FA; --card: #FFFFFF; --primary: #FF8906;
+      --secondary: #F25F4C; --text: #1A1A2E; --muted: #6B7280;
+      --border: rgba(0,0,0,0.08); --input-border: rgba(0,0,0,0.06);
+      --chip-border: rgba(0,0,0,0.08);
+      --glass-bg: rgba(255,255,255,0.94); --glass-border: rgba(0,0,0,0.08);
+      --glass-title: #1A1A2E; --glass-price: #6B7280; --glass-arrow: #6B7280;
+      --card-fallback: #ECEEF4; --placeholder-end: #ECEEF4;
+      --dot-pending: #E5E7EB; --line-pending: #E5E7EB;
+      --modal-cancel-bg: #ECEEF4; --modal-cancel-fg: #1A1A2E;
+      --overlay: rgba(0,0,0,0.45); --textarea-border: rgba(0,0,0,0.12);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
     body {
@@ -75,12 +106,20 @@ self.addEventListener('fetch', (e) => {
       -webkit-text-size-adjust: 100%;
     }
     header {
-      background: var(--bg); padding: 12px 16px; border-bottom: 1px solid #2a2933;
-      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg); padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
       position: sticky; top: 0; z-index: 10;
     }
-    header h1 { font-size: 1.1rem; }
+    header h1 { font-size: 1.1rem; flex: 1; min-width: 0; }
     header span { color: var(--primary); }
+    .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .btn-theme {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid var(--primary); background: rgba(255,137,6,0.15);
+      color: var(--primary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-theme svg { width: 18px; height: 18px; }
     .btn-call-waiter {
       display: flex; align-items: center; gap: 8px;
       background: rgba(255,137,6,0.15); border: 1.5px solid var(--primary);
@@ -100,17 +139,22 @@ self.addEventListener('fetch', (e) => {
     .tab-panel.active { display: flex; }
     .search { padding: 12px 16px 8px; }
     .search input {
-      width: 100%; padding: 12px 16px 12px 42px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);
-      background: var(--card); color: var(--text); font-size: 0.95rem;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23A7A9BE' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E");
+      width: 100%; padding: 12px 16px 12px 42px; border-radius: 14px; border: 1px solid var(--input-border);
+      background-color: var(--card); color: var(--text); font-size: 0.95rem;
       background-repeat: no-repeat; background-position: 14px center;
+    }
+    html[data-theme="dark"] .search input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23A7A9BE' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E");
+    }
+    html[data-theme="light"] .search input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E");
     }
     .categories {
       display: flex; gap: 8px; padding: 4px 12px 14px; overflow-x: auto;
       scrollbar-width: none;
     }
     .cat-chip {
-      padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.08);
+      padding: 9px 18px; border-radius: 999px; border: 1px solid var(--chip-border);
       cursor: pointer; background: var(--card); color: var(--muted);
       font-weight: 600; white-space: nowrap; font-size: 0.82rem;
       transition: all 0.2s ease;
@@ -131,7 +175,7 @@ self.addEventListener('fetch', (e) => {
       overflow: hidden;
       cursor: pointer;
       border: 1px solid transparent;
-      background: #1c1b24;
+      background: var(--card-fallback);
       transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .product-grid-card:active { transform: scale(0.98); }
@@ -156,7 +200,7 @@ self.addEventListener('fetch', (e) => {
     .product-grid-bg .placeholder {
       width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, rgba(255,137,6,0.3) 0%, #1F1E26 100%);
+      background: linear-gradient(135deg, rgba(255,137,6,0.3) 0%, var(--placeholder-end) 100%);
       font-size: 2.6rem; color: var(--primary);
     }
     .product-avail-badge {
@@ -177,9 +221,9 @@ self.addEventListener('fetch', (e) => {
       position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 2;
       display: flex; align-items: center; gap: 8px;
       padding: 8px 10px; border-radius: 14px;
-      background: rgba(255,255,255,0.22);
+      background: var(--glass-bg);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.25);
+      border: 1px solid var(--glass-border);
     }
     .product-initial {
       width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
@@ -190,22 +234,20 @@ self.addEventListener('fetch', (e) => {
     .product-glass-text { flex: 1; min-width: 0; }
     .product-glass-text h3 {
       margin: 0; font-size: 13px; font-weight: 700; line-height: 1.2;
-      color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.26);
+      color: var(--glass-title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .product-glass-text .price {
       display: block; margin-top: 2px;
-      font-size: 11px; font-weight: 400; color: rgba(255,255,255,0.9);
-      text-shadow: 0 1px 4px rgba(0,0,0,0.26);
+      font-size: 11px; font-weight: 400; color: var(--glass-price);
     }
     .product-glass-arrow {
-      flex-shrink: 0; width: 12px; height: 12px; color: rgba(255,255,255,0.9);
+      flex-shrink: 0; width: 12px; height: 12px; color: var(--glass-arrow);
       display: flex; align-items: center; justify-content: center;
     }
     .product-glass-arrow svg { width: 12px; height: 12px; display: block; }
     .product-thumb {
       width: 72px; height: 72px; border-radius: 12px; object-fit: cover;
-      background: #2a2933; flex-shrink: 0;
+      background: var(--card-fallback); flex-shrink: 0;
     }
     .product-thumb.placeholder {
       display: flex; align-items: center; justify-content: center;
@@ -264,7 +306,7 @@ self.addEventListener('fetch', (e) => {
     }
     .order-card h3 { margin-bottom: 6px; }
     .cart-total {
-      padding: 16px; border-top: 1px solid #2a2933;
+      padding: 16px; border-top: 1px solid var(--border);
       display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 700;
     }
     .btn-primary {
@@ -276,7 +318,7 @@ self.addEventListener('fetch', (e) => {
       padding: 12px 20px; font-weight: 600; cursor: pointer; width: 100%;
     }
     nav {
-      display: flex; background: var(--card); border-top: 1px solid #2a2933;
+      display: flex; background: var(--card); border-top: 1px solid var(--border);
       padding-bottom: env(safe-area-inset-bottom);
     }
     nav button {
@@ -300,8 +342,8 @@ self.addEventListener('fetch', (e) => {
     }
     .dot.done { background: #2E7D32; color: #fff; }
     .dot.current { border: 3px solid var(--primary); background: transparent; }
-    .dot.pending { background: #333; }
-    .line { width: 2px; height: 40px; background: #333; margin-left: 11px; }
+    .dot.pending { background: var(--dot-pending); }
+    .line { width: 2px; height: 40px; background: var(--line-pending); margin-left: 11px; }
     .line.done { background: #2E7D32; }
     .step-text h4 { font-size: 0.95rem; }
     .step-text p { font-size: 0.75rem; color: var(--muted); }
@@ -311,7 +353,7 @@ self.addEventListener('fetch', (e) => {
     }
     .error-screen h2 { color: var(--secondary); }
     .modal-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: none; position: fixed; inset: 0; background: var(--overlay);
       z-index: 100; align-items: flex-end; justify-content: center;
     }
     .modal-overlay.show { display: flex; }
@@ -321,8 +363,10 @@ self.addEventListener('fetch', (e) => {
     }
     .modal textarea {
       width: 100%; margin-top: 12px; padding: 12px; border-radius: 8px;
-      border: 1px solid #333; background: var(--bg); color: var(--text);
+      border: 1px solid var(--textarea-border); background: var(--bg); color: var(--text);
     }
+    .modal .price { color: var(--primary); font-weight: 700; }
+    .btn-modal-cancel { background: var(--modal-cancel-bg) !important; color: var(--modal-cancel-fg) !important; }
     .modal-overlay.center { align-items: center; padding: 24px; }
     .confirm-modal { border-radius: 20px; text-align: center; max-width: 340px; }
     .confirm-icon {
@@ -349,10 +393,13 @@ self.addEventListener('fetch', (e) => {
   <div id="app" style="display:none;flex-direction:column;min-height:100dvh">
     <header>
       <h1>Table <span id="table-label">—</span></h1>
-      <button class="btn-call-waiter" onclick="callWaiter()" title="Appeler le serveur">
-        <span>Appeler serveur</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-      </button>
+      <div class="header-actions">
+        <button type="button" class="btn-theme" id="theme-toggle" onclick="toggleTheme()" title="Mode clair / sombre" aria-label="Changer le thème"></button>
+        <button class="btn-call-waiter" onclick="callWaiter()" title="Appeler le serveur">
+          <span>Appeler serveur</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </button>
+      </div>
     </header>
     <div id="alert" class="alert"><span id="alert-text"></span><button onclick="hideAlert()">×</button></div>
     <main>
@@ -384,7 +431,7 @@ self.addEventListener('fetch', (e) => {
       <p id="modal-price" class="price" style="margin-top:8px"></p>
       <textarea id="modal-notes" placeholder="Notes (sans oignons, sauce à part…)"></textarea>
       <div class="modal-actions">
-        <button style="background:#333;color:#fff" onclick="closeModal()">Annuler</button>
+        <button class="btn-modal-cancel" onclick="closeModal()">Annuler</button>
         <button style="background:var(--primary);color:#fff" onclick="confirmAdd()">Ajouter</button>
       </div>
     </div>
@@ -395,7 +442,7 @@ self.addEventListener('fetch', (e) => {
       <h3>Supprimer cet article ?</h3>
       <p id="confirm-msg">Cet article sera retiré de votre panier.</p>
       <div class="modal-actions">
-        <button style="background:#333;color:#fff" onclick="cancelDelete()">Annuler</button>
+        <button class="btn-modal-cancel" onclick="cancelDelete()">Annuler</button>
         <button class="btn-danger" onclick="confirmDelete()">Supprimer</button>
       </div>
     </div>
@@ -406,7 +453,7 @@ self.addEventListener('fetch', (e) => {
     const tableId = pathMatch
       ? parseInt(pathMatch[1], 10)
       : parseInt(params.get('t') || params.get('tableId') || '0', 10);
-    let menu = [], selectedCat = 0, searchQuery = '', cart = {}, cartNotes = {};
+    let menu = [], selectedCat = -1, searchQuery = '', cart = {}, cartNotes = {};
     let activeOrders = [], ws = null, modalProduct = null;
     let pendingDeleteId = null, pendingDeleteReset = null;
 
@@ -415,6 +462,30 @@ self.addEventListener('fetch', (e) => {
     const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     const ICON_UNAVAILABLE = '<svg viewBox="0 0 24 24" fill="none" stroke="#A7A9BE" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
     const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+    const ICON_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+    const ICON_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('resto-theme', theme);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = theme === 'light' ? '#F5F6FA' : '#0F0E17';
+      updateThemeIcon();
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      applyTheme(current === 'light' ? 'dark' : 'light');
+    }
+
+    function updateThemeIcon() {
+      const btn = document.getElementById('theme-toggle');
+      if (!btn) return;
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      btn.innerHTML = isLight ? ICON_MOON : ICON_SUN;
+    }
+
+    updateThemeIcon();
 
     function productImageHtml(p, cls) {
       const c = cls || 'product-thumb';
@@ -545,21 +616,35 @@ self.addEventListener('fetch', (e) => {
 
     function renderCategories() {
       const el = document.getElementById('categories');
-      el.innerHTML = menu.map((c, i) =>
-        `<button class="cat-chip${i===selectedCat?' active':''}" onclick="selectCat(${i})">${esc(c.name)}</button>`
+      const tousActive = selectedCat === -1 ? ' active' : '';
+      let html = `<button class="cat-chip${tousActive}" onclick="selectCat(-1)">Tous</button>`;
+      html += menu.map((c, i) =>
+        `<button class="cat-chip${i === selectedCat ? ' active' : ''}" onclick="selectCat(${i})">${esc(c.name)}</button>`
       ).join('');
+      el.innerHTML = html;
     }
 
     function selectCat(i) { selectedCat = i; renderCategories(); renderProducts(); }
 
     function onSearch(q) { searchQuery = q.toLowerCase(); renderProducts(); }
 
+    function productsForCurrentCategory() {
+      if (selectedCat === -1) {
+        const all = [];
+        for (const c of menu) {
+          for (const p of (c.products || [])) all.push(p);
+        }
+        return all;
+      }
+      return menu[selectedCat]?.products || [];
+    }
+
     function renderProducts() {
       if (!menu.length) {
         document.getElementById('products').innerHTML = '<div class="empty">Menu vide</div>';
         return;
       }
-      const products = (menu[selectedCat].products || []).filter(p =>
+      const products = productsForCurrentCategory().filter(p =>
         p.name.toLowerCase().includes(searchQuery)
       );
       if (!products.length) {
