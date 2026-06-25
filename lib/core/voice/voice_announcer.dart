@@ -112,6 +112,10 @@ class VoiceAnnouncer {
     await announce('Une commande vient d\'être passée sur $tableLabel.');
   }
 
+  Future<void> announceWaiterCall(String tableLabel) async {
+    await announce('On a besoin d\'un serveur sur $tableLabel immédiatement.');
+  }
+
   Future<void> _processQueue() async {
     if (_speaking || _queue.isEmpty) return;
     _speaking = true;

@@ -214,8 +214,16 @@ class AppProvider extends ChangeNotifier {
       HapticFeedback.mediumImpact();
       unawaited(VoiceAnnouncer.instance.announceNewOrder(label));
     } else if (event == 'waiter_call') {
+      final tableId = (data['table_id'] as num).toInt();
+      final label = _tableLabel(tableId);
+      _alertMessage = '🔔 Appel serveur — $label';
+      _pushNotification(
+        type: 'waiter_call',
+        title: 'Appel serveur',
+        body: '$label demande un serveur',
+      );
       HapticFeedback.heavyImpact();
-      // Le bandeau « Appels serveurs en attente » affiche déjà l'info.
+      unawaited(VoiceAnnouncer.instance.announceWaiterCall(label));
     }
 
     await refreshRestaurantData();
