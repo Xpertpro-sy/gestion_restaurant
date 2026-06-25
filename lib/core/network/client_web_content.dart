@@ -98,17 +98,32 @@ self.addEventListener('fetch', (e) => {
       --overlay: rgba(0,0,0,0.45); --textarea-border: rgba(0,0,0,0.12);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg); color: var(--text);
-      min-height: 100dvh; display: flex; flex-direction: column;
+      height: 100dvh; max-height: 100dvh;
+      display: flex; flex-direction: column;
       touch-action: manipulation;
       -webkit-text-size-adjust: 100%;
     }
+    #app {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      height: 100dvh;
+      max-height: 100dvh;
+      overflow: hidden;
+    }
+    #app.is-visible { display: flex; }
     header {
       background: var(--bg); padding: 12px 16px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      position: sticky; top: 0; z-index: 10;
+      position: sticky; top: 0; z-index: 10; flex-shrink: 0;
     }
     header h1 { font-size: 1.1rem; flex: 1; min-width: 0; }
     header span { color: var(--primary); }
@@ -130,14 +145,16 @@ self.addEventListener('fetch', (e) => {
     .alert {
       background: var(--primary); color: #fff; padding: 10px 16px;
       display: none; align-items: center; justify-content: space-between;
-      font-size: 0.9rem; font-weight: 600;
+      font-size: 0.9rem; font-weight: 600; flex-shrink: 0;
     }
     .alert.show { display: flex; }
     .alert button { background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; }
-    main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-    .tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    main { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .tab-panel { display: none; flex: 1; min-height: 0; overflow: hidden; flex-direction: column; }
     .tab-panel.active { display: flex; }
-    .search { padding: 12px 16px 8px; }
+    .tab-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; }
+    .tab-track-footer { flex-shrink: 0; padding: 16px; }
+    .search { padding: 12px 16px 8px; flex-shrink: 0; }
     .search input {
       width: 100%; padding: 12px 16px 12px 42px; border-radius: 14px; border: 1px solid var(--input-border);
       background-color: var(--card); color: var(--text); font-size: 0.95rem;
@@ -151,7 +168,7 @@ self.addEventListener('fetch', (e) => {
     }
     .categories {
       display: flex; gap: 8px; padding: 4px 12px 14px; overflow-x: auto;
-      scrollbar-width: none;
+      scrollbar-width: none; flex-shrink: 0;
     }
     .cat-chip {
       padding: 9px 18px; border-radius: 999px; border: 1px solid var(--chip-border);
@@ -163,7 +180,7 @@ self.addEventListener('fetch', (e) => {
       background: var(--primary); color: #fff; border-color: var(--primary);
       box-shadow: 0 4px 14px rgba(255,137,6,0.35);
     }
-    .products { flex: 1; overflow-y: auto; background: var(--bg); }
+    .products { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg); }
     .products-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
       padding: 0 16px 16px;
@@ -308,18 +325,23 @@ self.addEventListener('fetch', (e) => {
     .cart-total {
       padding: 16px; border-top: 1px solid var(--border);
       display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 700;
+      flex-shrink: 0;
     }
     .btn-primary {
       margin: 0 16px 16px; padding: 14px; background: var(--primary); color: #fff;
       border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer;
+      flex-shrink: 0;
     }
     .btn-secondary {
       background: var(--secondary); color: #fff; border: none; border-radius: 12px;
       padding: 12px 20px; font-weight: 600; cursor: pointer; width: 100%;
     }
     nav {
-      display: flex; background: var(--card); border-top: 1px solid var(--border);
+      display: flex; flex-shrink: 0;
+      background: var(--card); border-top: 1px solid var(--border);
       padding-bottom: env(safe-area-inset-bottom);
+      z-index: 20;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
     }
     nav button {
       flex: 1; padding: 12px 8px; background: none; border: none;
@@ -349,7 +371,8 @@ self.addEventListener('fetch', (e) => {
     .step-text p { font-size: 0.75rem; color: var(--muted); }
     .loading, .error-screen {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 60dvh; padding: 24px; text-align: center; gap: 16px;
+      flex: 1; min-height: 0; padding: 24px; text-align: center; gap: 16px;
+      overflow-y: auto;
     }
     .error-screen h2 { color: var(--secondary); }
     .modal-overlay {
@@ -390,7 +413,7 @@ self.addEventListener('fetch', (e) => {
     <h2>Connexion impossible</h2>
     <p id="error-msg">Vérifiez que vous êtes sur le même réseau Wi-Fi que le restaurant.</p>
   </div>
-  <div id="app" style="display:none;flex-direction:column;min-height:100dvh">
+  <div id="app">
     <header>
       <h1>Table <span id="table-label">—</span></h1>
       <div class="header-actions">
@@ -409,13 +432,13 @@ self.addEventListener('fetch', (e) => {
         <div id="products" class="products"></div>
       </div>
       <div id="tab-cart" class="tab-panel">
-        <div id="cart-list" style="flex:1;overflow-y:auto;padding:16px"></div>
+        <div id="cart-list" class="tab-scroll"></div>
         <div class="cart-total"><span>Total</span><span id="cart-total">0 FCFA</span></div>
         <button class="btn-primary" onclick="submitOrder()">Passer la commande</button>
       </div>
       <div id="tab-track" class="tab-panel">
-        <div id="track-content" style="flex:1;overflow-y:auto;padding:16px"></div>
-        <div style="padding:16px"><button class="btn-secondary" onclick="callWaiter()">Appeler le serveur / Addition</button></div>
+        <div id="track-content" class="tab-scroll"></div>
+        <div class="tab-track-footer"><button class="btn-secondary" onclick="callWaiter()">Appeler le serveur / Addition</button></div>
       </div>
     </main>
     <nav>
@@ -559,7 +582,7 @@ self.addEventListener('fetch', (e) => {
         await loadTableOrders();
         connectWs();
         document.getElementById('loading').style.display = 'none';
-        document.getElementById('app').style.display = 'flex';
+        document.getElementById('app').classList.add('is-visible');
         renderCategories();
         renderProducts();
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('/client/sw.js').catch(() => {});
