@@ -11,6 +11,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../core/database/database_helper.dart';
 import '../../core/voice/voice_announcer.dart';
+import '../../core/voice/voice_settings_store.dart';
 import '../../shared/providers/app_provider.dart';
 import '../../shared/theme.dart';
 import '../../shared/formatters.dart';
@@ -421,6 +422,139 @@ class ServerAdminView extends StatefulWidget {
 }
 
 class _ServerAdminViewState extends State<ServerAdminView> {
+  final _orderVoiceCtrl = TextEditingController();
+  final _waiterVoiceCtrl = TextEditingController();
+  bool _voiceSettingsLoaded = false;
+  bool _voiceSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final role = Provider.of<AppProvider>(context, listen: false)
+          .currentUser
+          ?.role;
+      if (role == 'admin') _loadVoiceSettings();
+    });
+  }
+
+  @override
+  void dispose() {
+    _orderVoiceCtrl.dispose();
+    _waiterVoiceCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadVoiceSettings() async {
+    await VoiceSettingsStore.instance.load();
+    if (!mounted) return;
+    setState(() {
+      _orderVoiceCtrl.text = VoiceSettingsStore.instance.orderTemplate;
+      _waiterVoiceCtrl.text = VoiceSettingsStore.instance.waiterTemplate;
+      _voiceSettingsLoaded = true;
+    });
+  }
+
+  Future<void> _saveVoiceSettings() async {
+    setState(() => _voiceSaving = true);
+    await VoiceSettingsStore.instance.save(
+      orderTemplate: _orderVoiceCtrl.text,
+      waiterTemplate: _waiterVoiceCtrl.text,
+    );
+    if (!mounted) return;
+    setState(() {
+      _orderVoiceCtrl.text = VoiceSettingsStore.instance.orderTemplate;
+      _waiterVoiceCtrl.text = VoiceSettingsStore.instance.waiterTemplate;
+      _voiceSaving = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Textes vocaux enregistrés')),
+    );
+  }
+
+  Future<void> _resetVoiceSettings() async {
+    await VoiceSettingsStore.instance.resetToDefaults();
+    if (!mounted) return;
+    setState(() {
+      _orderVoiceCtrl.text = VoiceSettingsStore.instance.orderTemplate;
+      _waiterVoiceCtrl.text = VoiceSettingsStore.instance.waiterTemplate;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Textes vocaux réinitialisés')),
+    );
+  }
+
+  Widget _buildVoiceTestButton({
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      ),
+      onPressed: onPressed,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.volume_up, size: 18),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVoiceTestButtons() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 400;
+        final orderBtn = SizedBox(
+          width: narrow ? double.infinity : null,
+          child: _buildVoiceTestButton(
+            label: 'Tester commande',
+            onPressed: () =>
+                VoiceAnnouncer.instance.announceNewOrder('Table 2'),
+          ),
+        );
+        final callBtn = SizedBox(
+          width: narrow ? double.infinity : null,
+          child: _buildVoiceTestButton(
+            label: 'Tester appel',
+            onPressed: () =>
+                VoiceAnnouncer.instance.announceWaiterCall('Table 2'),
+          ),
+        );
+
+        if (narrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              orderBtn,
+              const SizedBox(height: 8),
+              callBtn,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: orderBtn),
+            const SizedBox(width: 8),
+            Expanded(child: callBtn),
+          ],
+        );
+      },
+    );
+  }
+
   String _serverErrorMessage(Object error, bool starting) {
     final msg = error.toString().toLowerCase();
     if (msg.contains('address already in use') ||
@@ -604,49 +738,128 @@ class _ServerAdminViewState extends State<ServerAdminView> {
                       "Port de connexion",
                       "${provider.serverPort}",
                     ),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        VoiceAnnouncer.instance.announceNewOrder('Table 2');
-                      },
-                      icon: const Icon(Icons.volume_up),
-                      label: const Text('Tester l\'annonce vocale'),
-                    ),
+                    // const SizedBox(height: 16),
+                    // OutlinedButton.icon(
+                    //   onPressed: () {
+                    //     VoiceAnnouncer.instance.announceNewOrder('Table 2');
+                    //   },
+                    //   icon: const Icon(Icons.volume_up),
+                    //   label: const Text('Tester l\'annonce vocale'),
+                    // ),
                   ],
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          const Text(
-            "Guide client",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "1. Les clients se connectent au Wi-Fi du restaurant.",
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "2. Générez les QR codes pour chaque table dans l'onglet « Tables ».",
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "3. Un scan ouvre le menu dans le navigateur (PWA) — aucune application à installer.",
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ],
+          // const SizedBox(height: 24),
+          // const Text(
+          //   "Guide client",
+          //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          // ),
+          // const SizedBox(height: 12),
+          // const Card(
+          //   child: Padding(
+          //     padding: EdgeInsets.all(16),
+          //     child: Column(
+          //       crossAxisAlignment: CrossAxisAlignment.start,
+          //       children: [
+          //         Text(
+          //           "1. Les clients se connectent au Wi-Fi du restaurant.",
+          //           style: TextStyle(fontSize: 14),
+          //         ),
+          //         SizedBox(height: 8),
+          //         Text(
+          //           "2. Générez les QR codes pour chaque table dans l'onglet « Tables ».",
+          //           style: TextStyle(fontSize: 14),
+          //         ),
+          //         SizedBox(height: 8),
+          //         Text(
+          //           "3. Un scan ouvre le menu dans le navigateur (PWA) — aucune application à installer.",
+          //           style: TextStyle(fontSize: 14),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          // ),
+          if (user?.role == 'admin') ...[
+            const SizedBox(height: 24),
+            const Text(
+              "Annonces vocales",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "Personnalisez les messages lus à voix haute. Utilisez ${VoiceSettingsStore.tablePlaceholder} pour le nom de la table.",
+              style: TextStyle(color: context.resto.textSecondary, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _voiceSettingsLoaded
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: _orderVoiceCtrl,
+                            maxLines: 2,
+                            decoration: const InputDecoration(
+                              labelText: 'Nouvelle commande',
+                              hintText: VoiceSettingsStore.defaultOrderTemplate,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _waiterVoiceCtrl,
+                            maxLines: 2,
+                            decoration: const InputDecoration(
+                              labelText: 'Appel serveur',
+                              hintText: VoiceSettingsStore.defaultWaiterTemplate,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed:
+                                      _voiceSaving ? null : _resetVoiceSettings,
+                                  child: const Text('Réinitialiser'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: FilledButton(
+                                  onPressed:
+                                      _voiceSaving ? null : _saveVoiceSettings,
+                                  child: _voiceSaving
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('Enregistrer'),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildVoiceTestButtons(),
+                        ],
+                      )
+                    : const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 32),
           const Text(
             "Session",
@@ -2052,7 +2265,8 @@ class _AddProductSheet extends StatefulWidget {
     BuildContext sheetContext,
     int? selectedCatId,
     void Function(int id) onSelected,
-  ) onOpenCategoryPicker;
+  )
+  onOpenCategoryPicker;
 
   const _AddProductSheet({
     required this.imagePicker,
@@ -2177,7 +2391,9 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                           const SizedBox(height: 8),
                           Text(
                             'Ajouter une photo',
-                            style: TextStyle(color: context.resto.textSecondary),
+                            style: TextStyle(
+                              color: context.resto.textSecondary,
+                            ),
                           ),
                         ],
                       ),

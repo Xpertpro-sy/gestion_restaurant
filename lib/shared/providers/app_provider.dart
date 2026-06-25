@@ -6,6 +6,7 @@ import '../../core/database/database_helper.dart';
 import '../../core/storage/product_image_storage.dart';
 import '../../core/network/local_server.dart';
 import '../../core/voice/voice_announcer.dart';
+import '../../core/voice/voice_settings_store.dart';
 import '../models/models.dart';
 import '../models/staff_notification.dart';
 
@@ -52,6 +53,7 @@ class AppProvider extends ChangeNotifier {
 
   AppProvider() {
     LocalServer.instance.onServerEvent = _onServerWebSocketEvent;
+    unawaited(VoiceSettingsStore.instance.load());
   }
 
   void clearAlert() {

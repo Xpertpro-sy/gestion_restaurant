@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'voice_settings_store.dart';
 
 /// Annonces vocales pour alerter le personnel (nouvelles commandes, appels serveur…).
 class VoiceAnnouncer {
@@ -109,11 +110,11 @@ class VoiceAnnouncer {
   }
 
   Future<void> announceNewOrder(String tableLabel) async {
-    await announce('Une commande vient d\'être passée sur $tableLabel.');
+    await announce(VoiceSettingsStore.instance.formatOrder(tableLabel));
   }
 
   Future<void> announceWaiterCall(String tableLabel) async {
-    await announce('On a besoin d\'un serveur sur $tableLabel immédiatement.');
+    await announce(VoiceSettingsStore.instance.formatWaiterCall(tableLabel));
   }
 
   Future<void> _processQueue() async {

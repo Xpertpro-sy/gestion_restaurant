@@ -29,9 +29,25 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createAppSettingsTable(db);
+    }
+  }
+
+  Future<void> _createAppSettingsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -117,6 +133,8 @@ class DatabaseHelper {
         FOREIGN KEY (table_id) REFERENCES tables (id) ON DELETE CASCADE
       )
     ''');
+
+    await _createAppSettingsTable(db);
 
     // Seed default data
     await _seedData(db);
@@ -453,5 +471,27 @@ class DatabaseHelper {
       'orders': orders,
       'payment_methods': paymentMethods,
     };
+  }
+
+  Future<String?> getAppSetting(String key) async {
+    final db = await database;
+    final rows = await db.query(
+      'app_settings',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return rows.first['value'] as String?;
+  }
+
+  Future<void> setAppSetting(String key, String value) async {
+    final db = await database;
+    await db.insert(
+      'app_settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }

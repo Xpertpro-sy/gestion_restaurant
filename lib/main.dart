@@ -29,6 +29,18 @@ class MyApp extends StatelessWidget {
       darkTheme: RestoTheme.darkTheme,
       themeMode: provider.isDarkTheme ? ThemeMode.dark : ThemeMode.light,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (_) {
+            final focus = FocusManager.instance.primaryFocus;
+            if (focus != null && focus.hasFocus) {
+              focus.unfocus();
+            }
+          },
+          child: child,
+        );
+      },
       home: const PortalNavigator(),
     );
   }
