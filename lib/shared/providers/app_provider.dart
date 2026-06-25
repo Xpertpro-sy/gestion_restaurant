@@ -173,6 +173,17 @@ class AppProvider extends ChangeNotifier {
     await refreshRestaurantData();
   }
 
+  Future<int> addTable({String? name}) async {
+    final id = await DatabaseHelper.instance.insertTable(name: name);
+    await refreshRestaurantData();
+    return id;
+  }
+
+  Future<void> deleteTable(int id) async {
+    await DatabaseHelper.instance.deleteTable(id);
+    await refreshRestaurantData();
+  }
+
   String _tableLabel(int tableId) {
     for (final table in _tables) {
       if (table.id == tableId) return table.name;

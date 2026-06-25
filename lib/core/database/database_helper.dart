@@ -152,45 +152,12 @@ class DatabaseHelper {
       await db.insert('users', u);
     }
 
-    // 2. Seed Tables (Table 1 to 8)
-    for (int i = 1; i <= 8; i++) {
-      await db.insert('tables', {
-        'id': i,
-        'name': 'Table $i',
-        'status': 'libre',
-      });
-    }
-
-    // 3. Seed Categories
-    final categories = [
-      {'name': 'Entrées', 'description': 'Apéritifs et amuse-bouche', 'position': 1},
-      {'name': 'Plats', 'description': 'Plats de résistance', 'position': 2},
-      {'name': 'Desserts', 'description': 'Douceurs et gâteaux', 'position': 3},
-      {'name': 'Boissons', 'description': 'Boissons fraîches et chaudes', 'position': 4},
-    ];
-    for (var cat in categories) {
-      await db.insert('categories', cat);
-    }
-
-    // 4. Seed Products
-    final products = [
-      // Entrées
-      {'name': 'Salade César', 'description': 'Salade romaine, poulet grillé, croûtons, parmesan', 'price': 8.50, 'image_path': '', 'category_id': 1, 'is_available': 1},
-      {'name': 'Nems aux Légumes', 'description': '4 pièces de nems croustillants faits maison', 'price': 6.00, 'image_path': '', 'category_id': 1, 'is_available': 1},
-      // Plats
-      {'name': 'Steak Frites', 'description': 'Filet de bœuf grillé, frites maison, sauce poivre', 'price': 18.00, 'image_path': '', 'category_id': 2, 'is_available': 1},
-      {'name': 'Pizza Margherita', 'description': 'Sauce tomate bio, mozzarella di bufala, basilic frais', 'price': 12.50, 'image_path': '', 'category_id': 2, 'is_available': 1},
-      {'name': 'Burger Spécial Maison', 'description': 'Bœuf, cheddar fondu, oignons caramélisés, frites', 'price': 15.00, 'image_path': '', 'category_id': 2, 'is_available': 1},
-      // Desserts
-      {'name': 'Tiramisu', 'description': 'Le classique dessert italien au café et mascarpone', 'price': 7.00, 'image_path': '', 'category_id': 3, 'is_available': 1},
-      {'name': 'Moelleux au Chocolat', 'description': 'Cœur coulant, servi avec une boule de glace vanille', 'price': 7.50, 'image_path': '', 'category_id': 3, 'is_available': 1},
-      // Boissons
-      {'name': 'Coca-Cola', 'description': 'Canette de 33cl', 'price': 3.00, 'image_path': '', 'category_id': 4, 'is_available': 1},
-      {'name': 'Jus d\'Orange Frais', 'description': 'Pressé minute', 'price': 4.50, 'image_path': '', 'category_id': 4, 'is_available': 1},
-    ];
-    for (var prod in products) {
-      await db.insert('products', prod);
-    }
+    // 2. Seed Tables — une seule table par défaut (l'admin en ajoute d'autres)
+    await db.insert('tables', {
+      'id': 1,
+      'name': 'Table 1',
+      'status': 'libre',
+    });
   }
 
   // --- USER CRUD ---
@@ -222,6 +189,56 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<int> insertTable({String? name}) async {
+    final db = await instance.database;
+    final maxId = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT MAX(id) as m FROM tables'),
+        ) ??
+        0;
+    final id = maxId + 1;
+    final tableName =
+        (name != null && name.trim().isNotEmpty) ? name.trim() : 'Table $id';
+    await db.insert('tables', {
+      'id': id,
+      'name': tableName,
+      'status': 'libre',
+    });
+    return id;
+  }
+
+  Future<void> deleteTable(int id) async {
+    final db = await instance.database;
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM tables'),
+        ) ??
+        0;
+    if (count <= 1) {
+      throw StateError('last_table');
+    }
+
+    final activeOrders = await db.query(
+      'orders',
+      where: 'table_id = ? AND status NOT IN (?, ?)',
+      whereArgs: [id, 'payee', 'annulee'],
+      limit: 1,
+    );
+    if (activeOrders.isNotEmpty) {
+      throw StateError('active_orders');
+    }
+
+    final pendingCalls = await db.query(
+      'waiter_calls',
+      where: 'table_id = ? AND status = ?',
+      whereArgs: [id, 'pending'],
+      limit: 1,
+    );
+    if (pendingCalls.isNotEmpty) {
+      throw StateError('pending_calls');
+    }
+
+    await db.delete('tables', where: 'id = ?', whereArgs: [id]);
   }
 
   // --- CATEGORIES CRUD ---

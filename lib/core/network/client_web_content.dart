@@ -119,24 +119,27 @@ self.addEventListener('fetch', (e) => {
       background: var(--primary); color: #fff; border-color: var(--primary);
       box-shadow: 0 4px 14px rgba(255,137,6,0.35);
     }
-    .products { flex: 1; overflow-y: auto; background: linear-gradient(180deg, var(--bg) 0%, #12111a 100%); }
+    .products { flex: 1; overflow-y: auto; background: var(--bg); }
     .products-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-      padding: 0 12px 24px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+      padding: 0 16px 16px;
     }
     .product-grid-card {
       position: relative;
-      background: linear-gradient(165deg, #26252f 0%, #1c1b24 100%);
-      border-radius: 16px; overflow: hidden; cursor: pointer;
-      border: 1px solid rgba(255,255,255,0.07);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+      aspect-ratio: 1;
+      border-radius: 20px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: #1c1b24;
       transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .product-grid-card:active { transform: scale(0.98); }
     .product-grid-card.in-cart {
       border-color: rgba(255,137,6,0.45);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,137,6,0.15);
+      box-shadow: 0 0 0 1px rgba(255,137,6,0.15);
     }
+    .product-grid-card.unavailable { opacity: 0.55; }
     .product-grid-card.flash {
       animation: cardPulse 0.35s ease;
     }
@@ -144,55 +147,62 @@ self.addEventListener('fetch', (e) => {
       0% { box-shadow: 0 0 0 0 rgba(255,137,6,0.5); }
       100% { box-shadow: 0 0 0 12px rgba(255,137,6,0); }
     }
-    .product-grid-media { position: relative; overflow: hidden; }
-    .product-grid-img {
-      width: 100%; height: 108px; object-fit: cover; display: block; background: #2a2933;
+    .product-grid-bg {
+      position: absolute; inset: 0;
     }
-    .product-grid-img.placeholder {
+    .product-grid-bg img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .product-grid-bg .placeholder {
+      width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.8rem; color: var(--muted); height: 108px;
+      background: linear-gradient(135deg, rgba(255,137,6,0.3) 0%, #1F1E26 100%);
+      font-size: 2.6rem; color: var(--primary);
     }
-    .product-grid-media::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.55) 100%);
-      pointer-events: none;
+    .product-avail-badge {
+      position: absolute; top: 10px; right: 10px; z-index: 3;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      display: flex; align-items: center; justify-content: center;
     }
+    .product-avail-badge svg { width: 18px; height: 18px; display: block; }
     .cart-qty-badge {
-      position: absolute; top: 8px; left: 8px; z-index: 2;
+      position: absolute; top: 10px; left: 10px; z-index: 3;
       min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
       background: var(--primary); color: #fff; font-size: 0.7rem; font-weight: 800;
       display: flex; align-items: center; justify-content: center;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
-    .card-add-fab {
-      position: absolute; bottom: 8px; right: 8px; z-index: 2;
-      width: 34px; height: 34px; border-radius: 50%;
-      background: var(--primary); color: #fff;
+    .product-glass-bar {
+      position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 2;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 14px;
+      background: rgba(255,255,255,0.22);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .product-initial {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: #2E7D32; color: #fff;
+      font-size: 12px; font-weight: 800;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 14px rgba(255,137,6,0.55);
-      pointer-events: none;
     }
-    .card-add-fab svg { width: 18px; height: 18px; stroke: #fff; display: block; }
-    .product-grid-body { padding: 10px 10px 12px; }
-    .product-grid-body h3 {
-      font-size: 0.88rem; font-weight: 700; line-height: 1.2;
-      margin-bottom: 6px;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    .product-glass-text { flex: 1; min-width: 0; }
+    .product-glass-text h3 {
+      margin: 0; font-size: 13px; font-weight: 700; line-height: 1.2;
+      color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.26);
     }
-    .product-grid-footer {
-      display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    .product-glass-text .price {
+      display: block; margin-top: 2px;
+      font-size: 11px; font-weight: 400; color: rgba(255,255,255,0.9);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.26);
     }
-    .price { color: var(--primary); font-weight: 800; font-size: 0.82rem; letter-spacing: 0.02em; }
-    .grid-qty-row { margin-top: 8px; }
-    .grid-qty-row .qty-stepper { justify-content: center; margin-top: 0; gap: 8px; }
-    .grid-qty-row .qty-minus, .grid-qty-row .qty-plus { width: 30px; height: 30px; font-size: 1rem; }
-    .grid-qty-row .qty-input { width: 34px; font-size: 0.9rem; }
-    .btn-add-grid {
-      width: 34px; height: 34px; border-radius: 50%; background: var(--primary); border: none;
-      color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;
-      flex-shrink: 0; box-shadow: 0 4px 12px rgba(255,137,6,0.45);
+    .product-glass-arrow {
+      flex-shrink: 0; width: 12px; height: 12px; color: rgba(255,255,255,0.9);
+      display: flex; align-items: center; justify-content: center;
     }
-    .btn-add-grid svg { width: 18px; height: 18px; stroke: #fff; display: block; }
+    .product-glass-arrow svg { width: 12px; height: 12px; display: block; }
     .product-thumb {
       width: 72px; height: 72px; border-radius: 12px; object-fit: cover;
       background: #2a2933; flex-shrink: 0;
@@ -402,6 +412,9 @@ self.addEventListener('fetch', (e) => {
 
     const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>';
     const ICON_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    const ICON_UNAVAILABLE = '<svg viewBox="0 0 24 24" fill="none" stroke="#A7A9BE" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+    const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
 
     function productImageHtml(p, cls) {
       const c = cls || 'product-thumb';
@@ -411,8 +424,23 @@ self.addEventListener('fetch', (e) => {
       return `<div class="${c} placeholder">🍽</div>`;
     }
 
-    function productGridImageHtml(p) {
-      return productImageHtml(p, 'product-grid-img');
+    function productGridBgHtml(p) {
+      if (p.image_path) {
+        return `<img src="/api/images/${encodeURIComponent(p.image_path)}" alt="">`;
+      }
+      return `<div class="placeholder">🍽</div>`;
+    }
+
+    function productInitial(name) {
+      return (name && name.length) ? name.charAt(0).toUpperCase() : '?';
+    }
+
+    function isProductAvailable(p) {
+      return p.is_available !== 0 && p.is_available !== false;
+    }
+
+    function productAvailBadgeHtml(p) {
+      return `<div class="product-avail-badge" aria-hidden="true">${isProductAvailable(p) ? ICON_CHECK : ICON_UNAVAILABLE}</div>`;
     }
 
     function qtyStepperHtml(id, qty) {
@@ -427,6 +455,8 @@ self.addEventListener('fetch', (e) => {
 
     function quickAddToCart(id, e) {
       if (e && e.target.closest('.qty-stepper, .qty-minus, .qty-plus, .qty-input')) return;
+      const p = findProduct(id);
+      if (!p || !isProductAvailable(p)) return;
       cart[id] = (cart[id] || 0) + 1;
       renderProducts();
       renderCart();
@@ -539,17 +569,24 @@ self.addEventListener('fetch', (e) => {
       document.getElementById('products').innerHTML = `<div class="products-grid">${products.map(p => {
         const qty = cart[p.id] || 0;
         const badge = qty > 0 ? `<span class="cart-qty-badge">×${qty}</span>` : '';
-        const addFab = qty === 0 ? `<div class="card-add-fab" aria-hidden="true">${ICON_PLUS}</div>` : '';
         const inCart = qty > 0 ? ' in-cart' : '';
-        const bottom = qty > 0
-          ? `<div class="grid-qty-row">${qtyStepperHtml(p.id, qty)}</div>`
-          : '';
-        return `<article class="product-grid-card${inCart}" data-id="${p.id}" onclick="quickAddToCart(${p.id}, event)" role="button" tabindex="0">
-          <div class="product-grid-media">${productGridImageHtml(p)}${badge}${addFab}</div>
-          <div class="product-grid-body">
-            <h3>${esc(p.name)}</h3>
-            <div class="product-grid-footer"><span class="price">${fmtFcfa(p.price)}</span></div>
-            ${bottom}
+        const available = isProductAvailable(p);
+        const unavail = available ? '' : ' unavailable';
+        const initial = esc(productInitial(p.name));
+        const clickAction = available
+          ? `quickAddToCart(${p.id}, event)`
+          : `openModal(${p.id})`;
+        return `<article class="product-grid-card${inCart}${unavail}" data-id="${p.id}" onclick="${clickAction}" role="button" tabindex="0">
+          <div class="product-grid-bg">${productGridBgHtml(p)}</div>
+          ${productAvailBadgeHtml(p)}
+          ${badge}
+          <div class="product-glass-bar">
+            <div class="product-initial">${initial}</div>
+            <div class="product-glass-text">
+              <h3>${esc(p.name)}</h3>
+              <span class="price">${fmtFcfa(p.price)}</span>
+            </div>
+            <div class="product-glass-arrow">${ICON_ARROW}</div>
           </div>
         </article>`;
       }).join('')}</div>`;

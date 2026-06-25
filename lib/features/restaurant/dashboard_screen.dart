@@ -940,6 +940,7 @@ class TablesAdminView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AppProvider>(context);
+    final isAdmin = provider.currentUser?.role == 'admin';
 
     if (!provider.isServerRunning) {
       return const Center(
@@ -947,71 +948,194 @@ class TablesAdminView extends StatelessWidget {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.1,
-      ),
-      itemCount: provider.tables.length,
-      itemBuilder: (context, index) {
-        final table = provider.tables[index];
-        final statusColor = RestoTheme.getStatusColor(table.status);
-
-        return Card(
-          child: InkWell(
-            onTap: () {
-              _showTableActions(context, table, provider);
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    table.name,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (isAdmin)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${provider.tables.length} table${provider.tables.length > 1 ? 's' : ''}',
                     style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor, width: 1.5),
-                    ),
-                    child: Text(
-                      RestoTheme.getStatusLabel(table.status),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
+                ),
+                FilledButton.icon(
+                  onPressed: () => _showAddTableDialog(context, provider),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Ajouter'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: RestoTheme.primary,
+                    foregroundColor: Colors.white,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        );
-      },
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(20),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
+            ),
+            itemCount: provider.tables.length,
+            itemBuilder: (context, index) {
+              final table = provider.tables[index];
+              final statusColor = RestoTheme.getStatusColor(table.status);
+
+              return Card(
+                child: InkWell(
+                  onTap: () {
+                    _showTableActions(
+                      context,
+                      table,
+                      provider,
+                      isAdmin: isAdmin,
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          table.name,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: statusColor, width: 1.5),
+                          ),
+                          child: Text(
+                            RestoTheme.getStatusLabel(table.status),
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  void _showAddTableDialog(BuildContext context, AppProvider provider) {
+    final nameCtrl = TextEditingController();
+    final nextIndex = provider.tables.length + 1;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nouvelle table'),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: 'Nom de la table',
+            hintText: 'Table $nextIndex',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await provider.addTable(name: nameCtrl.text);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Ajouter'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteTable(
+    BuildContext context,
+    RestaurantTable table,
+    AppProvider provider,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Supprimer ${table.name} ?'),
+        content: const Text(
+          'Cette action est irréversible. La table ne doit pas avoir de commande en cours.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: RestoTheme.secondary),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await provider.deleteTable(table.id);
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${table.name} supprimée')),
+        );
+      }
+    } on StateError catch (e) {
+      if (!context.mounted) return;
+      final message = switch (e.message) {
+        'last_table' => 'Impossible de supprimer la dernière table.',
+        'active_orders' => 'Cette table a des commandes en cours.',
+        'pending_calls' => 'Cette table a un appel serveur en attente.',
+        _ => 'Impossible de supprimer cette table.',
+      };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   void _showTableActions(
     BuildContext context,
     RestaurantTable table,
-    AppProvider provider,
-  ) {
+    AppProvider provider, {
+    required bool isAdmin,
+  }) {
     showModalBottomSheet(
       context: context,
       backgroundColor: context.resto.surface,
@@ -1087,6 +1211,17 @@ class TablesAdminView extends StatelessWidget {
                     if (context.mounted) Navigator.pop(context);
                   },
                 ),
+                if (isAdmin) ...[
+                  const Divider(height: 24),
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline, color: RestoTheme.secondary),
+                    title: const Text(
+                      'Supprimer la table',
+                      style: TextStyle(color: RestoTheme.secondary),
+                    ),
+                    onTap: () => _confirmDeleteTable(context, table, provider),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1729,9 +1864,15 @@ class _CatalogAdminViewState extends State<CatalogAdminView> {
         Expanded(
           child: products.isEmpty
               ? Center(
-                  child: Text(
-                    'Aucun produit trouvé',
-                    style: TextStyle(color: context.resto.textSecondary),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      provider.categories.isEmpty
+                          ? 'Menu vide.\nCréez des catégories via l\'icône filtre, puis ajoutez vos produits.'
+                          : 'Aucun produit trouvé',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: context.resto.textSecondary),
+                    ),
                   ),
                 )
               : GridView.builder(
